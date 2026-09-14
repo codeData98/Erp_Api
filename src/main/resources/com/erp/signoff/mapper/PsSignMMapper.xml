@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--
+  位置约定：与 Mapper 接口保持相同的包路径
+    Java : src/main/java/com/erp/signoff/mapper/SfProcRcmMapper.java
+    XML  : src/main/resources/com/erp/signoff/mapper/SfProcRcmMapper.xml
+  编译后二者都会落到 target/classes/com/erp/signoff/mapper/ 下，
+  MyBatis 按 "namespace 全限定名 + .xml" 的约定自动加载，无需配置 mapper-locations。
+-->
+<mapper namespace="com.erp.signoff.mapper.PsSignMMapper">
+    <insert id="insertSignMInfo">
+        insert into ps_sign_m(ORG_ID, HEADER_ID, SIGN_NO, SIGN_DATE, CUST_ID, TRADE_MODE, IS_SALES, REMARK, SRC_ORGID, SRC_HEADERID, STATUS, GRT_DEPT, GRT_USER, CRE_USER, CRE_DATE, VALID_USER, VALID_DATE, LAST_USER, LAST_DATE, SRC_TYPE)
+        values(#{psSignM.org_id,})
+    </insert>
+</mapper>

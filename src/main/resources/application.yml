@@ -1,0 +1,29 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: ps-auto-signoff
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # 数据库 erp 由 erp.sql 创建（表结构 + 基础数据 + 闭环测试数据）
+    url: jdbc:mysql://127.0.0.1:3306/erp?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: root
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+
+mybatis:
+  configuration:
+    # 下划线列名 -> 驼峰属性名，例如 vend_no -> vendNo
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  # 说明：Mapper XML 与接口同包路径存放（src/main/resources/com/erp/signoff/mapper/），
+  #       MyBatis 按 "namespace + .xml" 约定自动加载，故无需配置 mapper-locations。
+  #       若以后要把 XML 放到其他目录，再开启下面这行（不要与同包路径重复，否则会重复加载报错）。
+  # mapper-locations: classpath*:/mapper/**/*.xml
+
+logging:
+  level:
+    com.erp.signoff: debug

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--
+  位置约定：与 Mapper 接口保持相同的包路径
+    Java : src/main/java/com/erp/signoff/mapper/SfProcRcmMapper.java
+    XML  : src/main/resources/com/erp/signoff/mapper/SfProcRcmMapper.xml
+  编译后二者都会落到 target/classes/com/erp/signoff/mapper/ 下，
+  MyBatis 按 "namespace 全限定名 + .xml" 的约定自动加载，无需配置 mapper-locations。
+-->
+<mapper namespace="com.erp.signoff.mapper.SfProcRcmMapper">
+    <!--    通过组织 + 收料单号获取收料信息-->
+    <select id="selectByOrgAndProcNo" resultType="com.erp.signoff.entity.SfProcRcm">
+        select * from sf_proc_rcm where org_id = #{orgId} and proc_no = #{procNo}
+    </select>
+<!--    获取所以关联信息-->
+    <select id="selectByProcNoAndOrgIdAndSrcOrg" resultType="com.erp.signoff.dto.SignCursorRow">
+        SELECT
+            -- ====== 收货方数据（SF_PROC_RCM / SF_PROC_ITEM）======
+            M.PROC_NO    AS rcptNo,         -- 收货单号（SF_PROC_RCM.PROC_NO）
+            M.VEND_NO    as vendNo,                       -- 内部厂商代码（SF_PROC_RCM.VEND_NO）
+            M.SRC_NO     as srcNo,                        -- 来源单号（SF_PROC_RCM.SRC_NO），用于关联出货方
+            PI.PROC_SEQ  AS rcptSeq,        -- 委外序号（SF_PROC_ITEM.PROC_SEQ 存的是委外时的序号）
+            PI.CHK_SEQ   AS rcptChkSeq,    -- 收货验收序号（SF_PROC_ITEM.CHK_SEQ）
+            PI.CHK_QTY   as chkQty,                      -- 收货数量（SF_PROC_ITEM.CHK_QTY）
+
+            -- ====== 出货方数据（PS_PROC_RCM / PS_PROC_ITEM / PS_PROC_D）======
+            RCM.ORG_ID as orgId,                      -- 出货组织（PS_PROC_RCM.ORG_ID）
+            RCM.CHK_NO as chkNo,                      -- 出货验收单号（PS_PROC_RCM.CHK_NO）
+            PD.PROC_NO   AS psProcNo,      -- 工艺订单号（PS_PROC_D.PROC_NO）
+            PD.PROC_SEQ  AS psProcSeq,     -- 工艺工序序号（PS_PROC_D.PROC_SEQ）
+            PD.PROD_NO   as prodNo,                      -- 产品型号（PS_PROC_D.PROD_NO）
+            PD.RP_PT     as rpPt,                        -- 加工点（PS_PROC_D.RP_PT）
+            PD.PART      as part,                         -- 部件（PS_PROC_D.PART）
+            PD.IS_MULT   as isMult                    -- 是否多件（PS_PROC_D.IS_MULT）
+        FROM SF_PROC_RCM M
+                 -- Step 1: 关联收货方子表，获取明细行数据（收货数量等）
+                 INNER JOIN SF_PROC_ITEM PI
+                            ON M.ORG_ID = PI.ORG_ID
+                                AND M.PROC_NO = PI.PROC_NO
+            -- Step 2: 匹配工艺厂订单主表 - 来源单号(SRC_NO)关联
+            -- PS_PROC_M 属于出货组织，使用 V_SALES_ORG_ID
+            -- 得到工艺订单号 PS_PROC_M.PROC_NO
+                 INNER JOIN PS_PROC_M PM
+                            ON PM.ORG_ID = #{srcOrg}
+                                AND M.SRC_NO = PM.SRC_NO
+            -- Step 3: 关联出货方收货子表 - 通过 ORG_ID + PROC_NO 关联工艺厂订单主表
+            -- PS_PROC_ITEM 同时持有 CHK_NO（→PS_PROC_RCM）和 PROC_NO+PROC_SEQ（→PS_PROC_D）
+                 INNER JOIN PS_PROC_ITEM PI2
+                            ON PI2.ORG_ID = PM.ORG_ID
+                                AND PI2.PROC_NO = PM.PROC_NO
+                                AND PI.PROC_SEQ = PI2.PROC_SEQ
+            -- Step 4: 匹配工艺厂订单子表 - 通过 PROC_NO + PROC_SEQ 获取产品明细
+                 INNER JOIN PS_PROC_D PD
+                            ON PD.ORG_ID = PI2.ORG_ID
+                                AND PD.PROC_NO = PI2.PROC_NO
+                                AND PD.PROC_SEQ = PI2.PROC_SEQ
+            -- Step 5: 关联出货方收货主表 - 送货单号(TRU_NO) = 验收单号(CHK_NO)
+            -- 完成追溯链路验证：SF_PROC_RCM.TRU_NO → PS_PROC_RCM.CHK_NO
+                 INNER JOIN PS_PROC_RCM RCM
+                            ON RCM.ORG_ID = PI2.ORG_ID
+                                AND RCM.CHK_NO = PI2.CHK_NO
+                                AND RCM.CHK_NO = M.TRU_NO
+        WHERE M.ORG_ID = #{orgId}
+          AND M.PROC_NO = #{procNo}
+          AND (
+--               未签收数大于0
+            (SELECT COALESCE(SUM(PIM.CHK_QTY),0)
+            FROM PS_PROC_ITEM PIM
+            WHERE PIM.ORG_ID = PI2.ORG_ID
+              AND PIM.CHK_NO = PI2.CHK_NO
+              AND PIM.PROC_NO = PI2.PROC_NO
+              AND PIM.PROC_SEQ = PI2.PROC_SEQ) -
+            -- 获取已签收总数 -- 工艺订单+序号维度
+            (SELECT COALESCE(SUM(psd.sign_qty),0)
+            FROM PS_SIGN_D psd
+            WHERE psd.ORG_ID = PI2.ORG_ID
+              AND psd.SALES_NO = RCM.CHK_NO
+              AND psd.SE_ID = PI2.PROC_NO
+              AND psd.SE_SEQ = PI2.PROC_SEQ) >0
+
+            ) ORDER BY RCM.CHK_NO, PD.PROC_NO, PD.PROC_SEQ
+    </select>
+</mapper>
