@@ -11,4 +11,7 @@ public interface PsSignMMapper {
 
     int insertSignMInfo(PsSignM psSignM);
 
+    Long  getMaxHeaderId(Long orgId);
+
+    String getSignNoByOrgId(Long orgId,String prefix);
 }

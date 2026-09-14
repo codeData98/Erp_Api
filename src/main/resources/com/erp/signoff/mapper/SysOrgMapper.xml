@@ -4,8 +4,8 @@
 
 <!--
   位置约定：与 Mapper 接口保持相同的包路径
-    Java : src/main/java/com/erp/signoff/mapper/SfProcRcmMapper.java
-    XML  : src/main/resources/com/erp/signoff/mapper/SfProcRcmMapper.xml
+    Java : src/main/java/com/erp/signoff/mapper/SysOrgMapper.java
+    XML  : src/main/resources/com/erp/signoff/mapper/SysOrgMapper.xml
   编译后二者都会落到 target/classes/com/erp/signoff/mapper/ 下，
   MyBatis 按 "namespace 全限定名 + .xml" 的约定自动加载，无需配置 mapper-locations。
 -->

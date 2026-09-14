@@ -12,7 +12,7 @@
 <mapper namespace="com.erp.signoff.mapper.SfProcRcmMapper">
     <!--    通过组织 + 收料单号获取收料信息-->
     <select id="selectByOrgAndProcNo" resultType="com.erp.signoff.entity.SfProcRcm">
-        select * from sf_proc_rcm where org_id = #{orgId} and proc_no = #{procNo};
+        select * from sf_proc_rcm where org_id = #{orgId} and proc_no = #{procNo}
     </select>
 <!--    获取所以关联信息-->
     <select id="selectByProcNoAndOrgIdAndSrcOrg" resultType="com.erp.signoff.dto.SignCursorRow">
@@ -68,18 +68,18 @@
 --               未签收数大于0
             (SELECT COALESCE(SUM(PIM.CHK_QTY),0)
             FROM PS_PROC_ITEM PIM
-            WHERE ORG_ID = PI2.ORG_ID
-              AND CHK_NO = PI2.CHK_NO
-              AND PROC_NO = PI2.PROC_NO
-              AND PROC_SEQ = PI2.PROC_SEQ) -
+            WHERE PIM.ORG_ID = PI2.ORG_ID
+              AND PIM.CHK_NO = PI2.CHK_NO
+              AND PIM.PROC_NO = PI2.PROC_NO
+              AND PIM.PROC_SEQ = PI2.PROC_SEQ) -
             -- 获取已签收总数 -- 工艺订单+序号维度
             (SELECT COALESCE(SUM(psd.sign_qty),0)
             FROM PS_SIGN_D psd
-            WHERE ORG_ID = PI2.ORG_ID      
-              AND SALES_NO = RCM.CHK_NO
-              AND SE_ID = PI2.PROC_NO
-              AND SE_SEQ = PI2.PROC_SEQ) >0
+            WHERE psd.ORG_ID = PI2.ORG_ID
+              AND psd.SALES_NO = RCM.CHK_NO
+              AND psd.SE_ID = PI2.PROC_NO
+              AND psd.SE_SEQ = PI2.PROC_SEQ) >0
 
-            )
+            ) ORDER BY RCM.CHK_NO, PD.PROC_NO, PD.PROC_SEQ
     </select>
 </mapper>

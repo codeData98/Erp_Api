@@ -11,9 +11,10 @@ import com.erp.signoff.mapper.SysOrgMapper;
 import com.erp.signoff.service.AutoSignService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
@@ -41,6 +42,7 @@ public class AutoSignServiceImpl implements AutoSignService {
 
     private final SfProcRcmMapper sfProcRcmMapper;
     private final SysOrgMapper sysOrgMapper;
+    private final PsSignMMapper psSignMMapper;
 
 //    @RequiredArgsConstructor 注解等价于构造器注入 会为final 和 @NUll字段生成构造器注入
 //    public AutoSignServiceImpl(SfProcRcmMapper sfProcRcmMapper,SysOrgMapper sysOrgMapper){
@@ -85,13 +87,45 @@ public class AutoSignServiceImpl implements AutoSignService {
 
         //通过来源组织ID 和 收料单号 +收料组织ID获取所有的关联信息
         List<SignCursorRow> signCursorRowList = sfProcRcmMapper.selectByProcNoAndOrgIdAndSrcOrg(orgId,procNo,salesOrgId);
-        System.out.println(signCursorRowList);
+        //System.out.println(signCursorRowList);
         log.info("追溯到 {} 条明细", signCursorRowList.size());
+
+
+        // 获取最大的headerId + 1 作为本次的headerId
+        Long headerId = psSignMMapper.getMaxHeaderId(salesOrgId) + 1;
+
+        String prefix = sysOrgList.get(0).getMark() + "PSD" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        // 获取签收单号
+        String signNo = psSignMMapper.getSignNoByOrgId(orgId,prefix);
 
         // 执行插入操作
         PsSignM psSignM = new PsSignM();
         psSignM.setOrgId(salesOrgId);
-        psSignM
+        psSignM.setHeaderId(headerId);
+        psSignM.setSignNo(signNo);
+        psSignM.setSignDate(LocalDateTime.now());
+        psSignM.setCustId(custId);
+        psSignM.setIsSales("Y");
+        psSignM.setStatus(3);
+        psSignM.setCreUser("258159");
+        psSignM.setCreDate(LocalDateTime.now());
+        psSignM.setValidUser("257490");
+        psSignM.setValidDate(LocalDateTime.now());
+        psSignM.setLastUser("257490");
+        psSignM.setLastDate(LocalDateTime.now());
+
+        // 插入到ps_sign_m
+        int insertNum = psSignMMapper.insertSignMInfo(psSignM);
+        if (insertNum == 1){
+            log.info("插入ps_sign_m成功，header_id为:" + headerId);
+        }else {
+            throw new BusinessException("签收头插入失败");
+        }
+
+//        插入数据到D档
+        for (SignCursorRow signCursorRow:signCursorRowList){
+
+        }
 
 
     }
