@@ -12,7 +12,7 @@
 <mapper namespace="com.erp.signoff.mapper.PsSignMMapper">
 <!--    获取最大签收ID-->
     <select id="getMaxHeaderId" resultType="long">
-        select max(header_id) from ps_sing_m where org_id = #{orgId}
+        select max(header_id) from ps_sign_m where org_id = #{orgId}
     </select>
 <!--获取签收单号-->
     <select id="getSignNoByOrgId" resultType="string">

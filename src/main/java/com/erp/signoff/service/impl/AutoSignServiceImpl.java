@@ -2,12 +2,8 @@ package com.erp.signoff.service.impl;
 
 import com.erp.signoff.common.BusinessException;
 import com.erp.signoff.dto.SignCursorRow;
-import com.erp.signoff.entity.PsSignM;
-import com.erp.signoff.entity.SfProcRcm;
-import com.erp.signoff.entity.SysOrg;
-import com.erp.signoff.mapper.PsSignMMapper;
-import com.erp.signoff.mapper.SfProcRcmMapper;
-import com.erp.signoff.mapper.SysOrgMapper;
+import com.erp.signoff.entity.*;
+import com.erp.signoff.mapper.*;
 import com.erp.signoff.service.AutoSignService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -43,6 +40,8 @@ public class AutoSignServiceImpl implements AutoSignService {
     private final SfProcRcmMapper sfProcRcmMapper;
     private final SysOrgMapper sysOrgMapper;
     private final PsSignMMapper psSignMMapper;
+    private final PsSignDMapper psSignDMapper;
+    private final PsSignSMapper psSignSMapper;
 
 //    @RequiredArgsConstructor 注解等价于构造器注入 会为final 和 @NUll字段生成构造器注入
 //    public AutoSignServiceImpl(SfProcRcmMapper sfProcRcmMapper,SysOrgMapper sysOrgMapper){
@@ -115,17 +114,26 @@ public class AutoSignServiceImpl implements AutoSignService {
         psSignM.setLastDate(LocalDateTime.now());
 
         // 插入到ps_sign_m
-        int insertNum = psSignMMapper.insertSignMInfo(psSignM);
-        if (insertNum == 1){
+        int insertMNum = psSignMMapper.insertSignMInfo(psSignM);
+        if (insertMNum == 1){
             log.info("插入ps_sign_m成功，header_id为:" + headerId);
         }else {
             throw new BusinessException("签收头插入失败");
         }
 
 //        插入数据到D档
-        for (SignCursorRow signCursorRow:signCursorRowList){
+
+        int lineId = psSignDMapper.getLineIdByHeaderId(orgId,headerId);
+        List<PsSignD> psSignDList = new ArrayList<>();
+        PsSignD psSignD = new PsSignD();
+        for(SignCursorRow signCursor:signCursorRowList){
+            psSignD.setHeaderId(headerId);
+            psSignD.setOrgId(salesOrgId);
+            // 获取最大的line_id
 
         }
+
+        int insertDNum = psSignDMapper.insertDataToPsSignD(psSignDList);
 
 
     }

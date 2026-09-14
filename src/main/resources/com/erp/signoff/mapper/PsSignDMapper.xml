@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--
+  位置约定：与 Mapper 接口保持相同的包路径
+    Java : src/main/java/com/erp/signoff/mapper/PsSignMMapper.java
+    XML  : src/main/resources/com/erp/signoff/mapper/PsSignMMapper.xml
+  编译后二者都会落到 target/classes/com/erp/signoff/mapper/ 下，
+  MyBatis 按 "namespace 全限定名 + .xml" 的约定自动加载，无需配置 mapper-locations。
+-->
+<mapper namespace="com.erp.signoff.mapper.PsSignDMapper">
+<!--    根据headerId获取到最大的LineId-->
+    <select id="getLineIdByHeaderId" resultType="int">
+        select max(line_id) from ps_sign_d where org_di = #{orgId} and header_id = #{headerId}
+    </select>
+<!--    插入数据到签收D档-->
+    <insert id="insertDataToPsSignD">
+        insert into()
+    </insert>
+<!--    插入签收数据到记录表-->
+<!--    插入数据到签收Size档-->
+</mapper>

@@ -9,8 +9,9 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface PsSignMMapper {
 
+    // 插入主档信息
     int insertSignMInfo(PsSignM psSignM);
-
+    // 获取最大headerID
     Long  getMaxHeaderId(Long orgId);
 
     String getSignNoByOrgId(Long orgId,String prefix);
