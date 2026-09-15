@@ -7,7 +7,6 @@ com\erp\signoff\SignoffApplication.class
 com\erp\signoff\dto\SignCursorRow.class
 com\erp\signoff\mapper\PsSignMMapper.class
 com\erp\signoff\entity\PsSignD.class
-com\erp\signoff\service\impl\AutoSignServiceImpl.class
 com\erp\signoff\entity\PsProcItem.class
 com\erp\signoff\mapper\PsProcRcmMapper.class
 com\erp\signoff\common\Result.class

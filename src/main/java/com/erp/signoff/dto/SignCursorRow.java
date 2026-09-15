@@ -14,6 +14,8 @@ public class SignCursorRow implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    //用来存每次获取条数的序号
+    private Long lineId;
     // ====== 收货方数据（sf_proc_rcm / sf_proc_item）======
     /** 收货单号（sf_proc_rcm.proc_no） */
     private String rcptNo;

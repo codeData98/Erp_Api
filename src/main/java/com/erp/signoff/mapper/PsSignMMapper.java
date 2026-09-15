@@ -2,6 +2,7 @@ package com.erp.signoff.mapper;
 
 import com.erp.signoff.entity.PsSignM;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 /**
  * 工艺签收确认主表 Mapper（自动签收输出）。
@@ -14,5 +15,5 @@ public interface PsSignMMapper {
     // 获取最大headerID
     Long  getMaxHeaderId(Long orgId);
 
-    String getSignNoByOrgId(Long orgId,String prefix);
+    Integer getMaxSignSeq(@Param("orgId") Long orgId, @Param("prefix") String prefix);
 }

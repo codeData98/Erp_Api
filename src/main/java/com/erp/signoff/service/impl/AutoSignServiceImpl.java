@@ -8,6 +8,8 @@ import com.erp.signoff.service.AutoSignService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -95,7 +97,9 @@ public class AutoSignServiceImpl implements AutoSignService {
 
         String prefix = sysOrgList.get(0).getMark() + "PSD" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         // 获取签收单号
-        String signNo = psSignMMapper.getSignNoByOrgId(orgId,prefix);
+        Integer maxSeq = psSignMMapper.getMaxSignSeq(salesOrgId, prefix);   // 注意 salesOrgId
+        String signNo = prefix + String.format("%04d", (maxSeq == null ? 0 : maxSeq) + 1);
+
 
         // 执行插入操作
         PsSignM psSignM = new PsSignM();
@@ -121,20 +125,52 @@ public class AutoSignServiceImpl implements AutoSignService {
             throw new BusinessException("签收头插入失败");
         }
 
-//        插入数据到D档
-
-        int lineId = psSignDMapper.getLineIdByHeaderId(orgId,headerId);
+//        插入数据到D档 这里直接先将获取到的数据组装好 放入List中
         List<PsSignD> psSignDList = new ArrayList<>();
-        PsSignD psSignD = new PsSignD();
+        Long salesSeq = 0L;
         for(SignCursorRow signCursor:signCursorRowList){
+            salesSeq++;
+            PsSignD psSignD = new PsSignD();
             psSignD.setHeaderId(headerId);
             psSignD.setOrgId(salesOrgId);
-            // 获取最大的line_id
-
+            psSignD.setLineId(signCursor.getLineId());
+            psSignD.setSalesId(1L);
+            psSignD.setSalesNo(signCursor.getChkNo());
+            psSignD.setSalesSeq(salesSeq);
+            psSignD.setSeId(signCursor.getPsProcNo());
+            BigDecimal psProcSeq = signCursor.getPsProcSeq();
+            Long psProcSeqLong;
+            if(psProcSeq != null){
+                psProcSeqLong = psProcSeq.longValue();
+            }else{
+                psProcSeqLong = 0L;
+            }
+            psSignD.setSeSeq(psProcSeqLong);
+            psSignD.setProdNo(signCursor.getProdNo());
+            psSignD.setRpPt(signCursor.getRpPt());
+            psSignD.setPart(signCursor.getPart());
+            psSignD.setIsMult(signCursor.getIsMult());
+            psSignD.setSignQty(signCursor.getChkQty());
+            psSignD.setCreUser("258159");
+            psSignD.setLastUser("257490");
+            psSignD.setCreDate(LocalDateTime.now());
+            psSignD.setLastDate(LocalDateTime.now());
+            psSignD.setRcptNo(procNo);
+            psSignD.setRcptOrgId(orgId);
+            psSignDList.add(psSignD);
         }
 
         int insertDNum = psSignDMapper.insertDataToPsSignD(psSignDList);
+        if(insertDNum == salesSeq){
+            log.info("插入明细成功，共插入数据：" + insertDNum + "条");
+        }else{
+            throw new BusinessException("签收明细插入失败");
+        }
 
+        /**
+         * 插入数据到ps_sign_s
+         * 传入数据直接在组装ps_sign_d的数据时就组装好
+         */
 
     }
 

@@ -16,7 +16,7 @@
     </select>
 <!--    插入数据到签收D档-->
     <insert id="insertDataToPsSignD">
-        insert into PS_SIGN_D(org_id,header_id,line_id,sales_id,sales_no,sales_seq,se_id,se_seq,prod_no,rp_pt,part,is_mult,
+        insert into PS_SIGN_D(org_id,header_id,line_id,sales_id,sales_seq,se_id,se_seq,prod_no,rp_pt,part,is_mult,
                               sign_qty,cre_user,cre_date,last_user,last_date,rcpt_no,rcpt_org_id) values
         <foreach collection="psSignDList" item="item" separator=",">
             (#{item.orgId}, #{item.headerId}, #{item.lineId}, #{item.salesId},

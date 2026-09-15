@@ -17,6 +17,9 @@
 <!--    获取所以关联信息-->
     <select id="selectByProcNoAndOrgIdAndSrcOrg" resultType="com.erp.signoff.dto.SignCursorRow">
         SELECT
+            ROW_NUMBER() OVER (
+                ORDER BY RCM.CHK_NO, PD.PROC_NO, PD.PROC_SEQ
+                        ) lineId,  --记录序号
             -- ====== 收货方数据（SF_PROC_RCM / SF_PROC_ITEM）======
             M.PROC_NO    AS rcptNo,         -- 收货单号（SF_PROC_RCM.PROC_NO）
             M.VEND_NO    as vendNo,                       -- 内部厂商代码（SF_PROC_RCM.VEND_NO）
