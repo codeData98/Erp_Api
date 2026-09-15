@@ -7,13 +7,25 @@ spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     # 数据库 erp 由 erp.sql 创建（表结构 + 基础数据 + 闭环测试数据）
-    url: jdbc:mysql://127.0.0.1:3306/erp?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://120.79.247.255:3306/erp?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: root
     password: root
     hikari:
       maximum-pool-size: 10
       minimum-idle: 2
-
+  data:
+    redis:
+      host: 120.79.247.255
+      port: 6379
+      password: root123
+      database: 0
+      timeout: 5000ms
+      jedis:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
 mybatis:
   configuration:
     # 下划线列名 -> 驼峰属性名，例如 vend_no -> vendNo

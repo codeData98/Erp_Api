@@ -28,5 +28,6 @@ com\erp\signoff\entity\PsProcD.class
 com\erp\signoff\entity\SysOrg.class
 com\erp\signoff\service\AutoSignService.class
 com\erp\signoff\common\BusinessException.class
+com\erp\signoff\controller\RedisTestController.class
 com\erp\signoff\entity\SfProcItem.class
 com\erp\signoff\entity\PsSignM.class

@@ -12,10 +12,10 @@
 <mapper namespace="com.erp.signoff.mapper.PsSignMMapper">
 <!--    获取最大签收ID-->
     <select id="getMaxHeaderId" resultType="long">
-        select coalesce(max(header_id),1) from ps_sign_m where org_id = #{orgId}
+        select coalesce(max(header_id),0) from ps_sign_m where org_id = #{orgId}
     </select>
 <!--获取签收单号-->
-    <select id="getSignNoByOrgId" resultType="string">
+    <select id="getMaxSignSeq" resultType="Integer">
         select coalesce(max(cast(right(sign_no, 4) as unsigned)), 0)
         from ps_sign_m
         where org_id = #{orgId} and sign_no like concat(#{prefix}, '%')
