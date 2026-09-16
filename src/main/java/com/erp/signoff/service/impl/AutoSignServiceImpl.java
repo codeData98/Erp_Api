@@ -127,6 +127,7 @@ public class AutoSignServiceImpl implements AutoSignService {
 
 //        插入数据到D档 这里直接先将获取到的数据组装好 放入List中
         List<PsSignD> psSignDList = new ArrayList<>();
+        List<PsSignS> psSignSList = new ArrayList<>();
         Long salesSeq = 0L;
         for(SignCursorRow signCursor:signCursorRowList){
             salesSeq++;
@@ -158,6 +159,53 @@ public class AutoSignServiceImpl implements AutoSignService {
             psSignD.setRcptNo(procNo);
             psSignD.setRcptOrgId(orgId);
             psSignDList.add(psSignD);
+            /**
+             * 组装获取S表的数据
+             * 入参 ORG_ID,PROC_NO,PROC_SEQ,CHK_SEQ
+             * SELECT S.SIZE_NO,
+             *                        S.SIZE_SEQ,
+             *                        S.CHK_QTY         -- 收货方尺码实际收货数量
+             *                   FROM SF_PROC_RCSIZE S
+             *                  WHERE S.ORG_ID = P_ORGID
+             *                    AND S.PROC_NO = P_PROC_NO
+             *                    AND S.PROC_SEQ = REC_D.RCPT_SEQ
+             *                    AND S.CHK_SEQ = REC_D.RCPT_CHK_SEQ
+             *                    AND S.CHK_QTY > 0
+             *                    ORG_ID AND PROC_NO AND PROC_SEQ AND CHK_SEQ
+             */
+
+            // 获取签收表Size档的数据
+            List<SfProcRcsize> allPsSignS = psSignSMapper.getPsSignSList(orgId,procNo,signCursor.getPsProcSeq(),signCursor.getChkNo());
+            if (allPsSignS.isEmpty()){
+                // 插入一条*的数据
+                PsSignS psSignS = new PsSignS();
+                psSignS.setOrgId(salesOrgId);
+                psSignS.setHeaderId(headerId);
+                psSignS.setLineId(signCursor.getLineId());
+                psSignS.setSizeNo("*");
+                psSignS.setSizeSeq(null);
+                psSignS.setSignQty(signCursor.getChkQty());
+                psSignS.setCreUser("258159");
+                psSignS.setLastUser("257490");
+                psSignS.setCreDate(LocalDateTime.now());;
+                psSignS.setLastDate(LocalDateTime.now());
+                psSignSList.add(psSignS);
+            }else {
+                for(SfProcRcsize size:allPsSignS){
+                    PsSignS psSignS = new PsSignS();
+                    psSignS.setOrgId(salesOrgId);
+                    psSignS.setHeaderId(headerId);
+                    psSignS.setLineId(signCursor.getLineId());
+                    psSignS.setSizeNo(size.getSizeNo());
+                    psSignS.setSizeSeq(size.getSizeSeq());
+                    psSignS.setSignQty(size.getChkQty());
+                    psSignS.setCreUser("258159");
+                    psSignS.setLastUser("257490");
+                    psSignS.setCreDate(LocalDateTime.now());;
+                    psSignS.setLastDate(LocalDateTime.now());
+                    psSignSList.add(psSignS);
+                }
+            }
         }
 
         int insertDNum = psSignDMapper.insertDataToPsSignD(psSignDList);
@@ -171,7 +219,12 @@ public class AutoSignServiceImpl implements AutoSignService {
          * 插入数据到ps_sign_s
          * 传入数据直接在组装ps_sign_d的数据时就组装好
          */
-
+        int insertSNum = psSignSMapper.insertBatch(psSignSList);
+        if(insertSNum >=1){
+            log.info("插入数据成功，共插入数据：" + insertSNum + "条");
+        }else {
+            throw new BusinessException("签收size插入失败");
+        }
     }
 
     @Override

@@ -23,5 +23,16 @@
             )
         </foreach>
     </insert>
+    <select id="getPsSignSList" resultType="com.erp.signoff.entity.SfProcRcsize">
+        SELECT S.SIZE_NO,
+               S.SIZE_SEQ,
+               S.CHK_QTY         -- 收货方尺码实际收货数量
+        FROM SF_PROC_RCSIZE S
+        WHERE S.ORG_ID = #{orgId}
+          AND S.PROC_NO = #{procNo}
+          AND S.PROC_SEQ = #{procSeq}
+          AND S.CHK_SEQ = #{chkNo}
+          AND S.CHK_QTY > 0
+    </select>
 
 </mapper>
