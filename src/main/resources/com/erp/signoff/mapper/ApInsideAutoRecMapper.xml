@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--
+  位置约定：与 Mapper 接口保持相同的包路径
+    Java : src/main/java/com/erp/signoff/mapper/PsSignMMapper.java
+    XML  : src/main/resources/com/erp/signoff/mapper/PsSignMMapper.xml
+  编译后二者都会落到 target/classes/com/erp/signoff/mapper/ 下，
+  MyBatis 按 "namespace 全限定名 + .xml" 的约定自动加载，无需配置 mapper-locations。
+-->
+<mapper namespace="com.erp.signoff.mapper.ApInsideAutoRecMapper">
+
+    <insert id="insertRec" parameterType="com.erp.signoff.entity.ApInsideAutoRec" useGeneratedKeys="true" keyProperty="tid">
+        insert into ap_inside_auto_rec(
+            insert_date, scene, org_id, rcpt_table, deliver_no, rcpt_date, rcpt_no, rcpt_seq,
+            vend_no, order_no, order_seq, chk_date, chk_seq, pass_qty, sales_org_id, sales_table,
+            sales_no, sales_seq, sales_seid, sales_qty, sign_no, header_id, line_id, sign_qty
+        ) values
+              <foreach collection=""
+    </insert>
+    <update id="updateErrorText">
+
+    </update>
+</mapper>

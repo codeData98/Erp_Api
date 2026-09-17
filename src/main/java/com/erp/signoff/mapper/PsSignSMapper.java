@@ -16,5 +16,5 @@ public interface PsSignSMapper {
 
     int insertBatch(List<PsSignS> psSignSList);
 
-    List<SfProcRcsize> getPsSignSList(@Param("orgId") Long orgId, @Param("procNo") String procNo, @Param("procSeq") BigDecimal psProcSeq, @Param("chkNo") String chkNo);
+    List<SfProcRcsize> getPsSignSList(@Param("orgId") Long orgId, @Param("procNo") String procNo, @Param("procSeq") BigDecimal psProcSeq, @Param("ChkSeq") BigDecimal ChkSeq);
 }

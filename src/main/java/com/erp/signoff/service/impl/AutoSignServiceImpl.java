@@ -4,10 +4,12 @@ import com.erp.signoff.common.BusinessException;
 import com.erp.signoff.dto.SignCursorRow;
 import com.erp.signoff.entity.*;
 import com.erp.signoff.mapper.*;
+import com.erp.signoff.service.AutoSignRecService;
 import com.erp.signoff.service.AutoSignService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -44,6 +46,7 @@ public class AutoSignServiceImpl implements AutoSignService {
     private final PsSignMMapper psSignMMapper;
     private final PsSignDMapper psSignDMapper;
     private final PsSignSMapper psSignSMapper;
+    private final AutoSignRecService autoSignRecService;
 
 //    @RequiredArgsConstructor 注解等价于构造器注入 会为final 和 @NUll字段生成构造器注入
 //    public AutoSignServiceImpl(SfProcRcmMapper sfProcRcmMapper,SysOrgMapper sysOrgMapper){
@@ -51,6 +54,7 @@ public class AutoSignServiceImpl implements AutoSignService {
 //        this.sfProcRcmMapper = sfProcRcmMapper;
 //    }
 
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public void autoSign(Long orgId, String procNo) {
 
@@ -88,14 +92,17 @@ public class AutoSignServiceImpl implements AutoSignService {
 
         //通过来源组织ID 和 收料单号 +收料组织ID获取所有的关联信息
         List<SignCursorRow> signCursorRowList = sfProcRcmMapper.selectByProcNoAndOrgIdAndSrcOrg(orgId,procNo,salesOrgId);
-        //System.out.println(signCursorRowList);
-        log.info("追溯到 {} 条明细", signCursorRowList.size());
-
+        if(signCursorRowList.isEmpty()){
+            log.info("未查询到明细数，跳过单号:{}/{}",orgId,procNo);
+            return;
+        }else{
+            log.info("追溯到 {} 条明细", signCursorRowList.size());
+        }
 
         // 获取最大的headerId + 1 作为本次的headerId
         Long headerId = psSignMMapper.getMaxHeaderId(salesOrgId) + 1;
 
-        String prefix = sysOrgList.get(0).getMark() + "PSD" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String prefix = sysOrgList.get(0).getMark() + "PSD" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyMMdd"));
         // 获取签收单号
         Integer maxSeq = psSignMMapper.getMaxSignSeq(salesOrgId, prefix);   // 注意 salesOrgId
         String signNo = prefix + String.format("%04d", (maxSeq == null ? 0 : maxSeq) + 1);
@@ -128,10 +135,12 @@ public class AutoSignServiceImpl implements AutoSignService {
 //        插入数据到D档 这里直接先将获取到的数据组装好 放入List中
         List<PsSignD> psSignDList = new ArrayList<>();
         List<PsSignS> psSignSList = new ArrayList<>();
+        List<ApInsideAutoRec> recList = new ArrayList();
         Long salesSeq = 0L;
         for(SignCursorRow signCursor:signCursorRowList){
             salesSeq++;
             PsSignD psSignD = new PsSignD();
+            ApInsideAutoRec apInsideAutoRec = new ApInsideAutoRec();
             psSignD.setHeaderId(headerId);
             psSignD.setOrgId(salesOrgId);
             psSignD.setLineId(signCursor.getLineId());
@@ -159,23 +168,45 @@ public class AutoSignServiceImpl implements AutoSignService {
             psSignD.setRcptNo(procNo);
             psSignD.setRcptOrgId(orgId);
             psSignDList.add(psSignD);
+
+            /**
+             * 组装ApInsideAutoRec实体的信息
+             * 用于插入记录
+             */
+            apInsideAutoRec.setInsertDate(LocalDateTime.now());
+            apInsideAutoRec.setScene("配套厂工序委外自动签收确认");
+            apInsideAutoRec.setOrgId(salesOrgId.intValue());
+            apInsideAutoRec.setOrgType(null);
+            apInsideAutoRec.setRcptTable("sf_proc_rcm");
+            apInsideAutoRec.setDeliverNo(signCursor.getSrcNo());
+            apInsideAutoRec.setRcptNo(signCursor.getRcptNo());
+            apInsideAutoRec.setRcptSeq(signCursor.getRcptSeq());
+            apInsideAutoRec.setVendNo(signCursor.getVendNo());
+            apInsideAutoRec.setOrderNo(signCursor.getPsProcNo());
+            apInsideAutoRec.setOrderSeq(signCursor.getPsProcSeq());
+            apInsideAutoRec.setChkDate(LocalDateTime.now());
+            apInsideAutoRec.setChkSeq(signCursor.getRcptChkSeq());
+            apInsideAutoRec.setSalesOrgId(salesOrgId.intValue());
+            apInsideAutoRec.setSalesTable("ps_proc_rcm/ps_proc_d");
+            apInsideAutoRec.setSalesNo(signCursor.getChkNo());
+            apInsideAutoRec.setSalesId(null);
+            apInsideAutoRec.setSalesSeq(signCursor.getPsProcSeq());
+            apInsideAutoRec.setSalesNo(signCursor.getPsProcNo());
+            apInsideAutoRec.setSalesQty(signCursor.getChkQty());
+            apInsideAutoRec.setSignNo(signNo);
+            apInsideAutoRec.setHeaderId(BigDecimal.valueOf(headerId));
+            apInsideAutoRec.setLineId(BigDecimal.valueOf(signCursor.getLineId()));
+            apInsideAutoRec.setSignQty(signCursor.getChkQty());
+
+            recList.add(apInsideAutoRec);
+
             /**
              * 组装获取S表的数据
              * 入参 ORG_ID,PROC_NO,PROC_SEQ,CHK_SEQ
-             * SELECT S.SIZE_NO,
-             *                        S.SIZE_SEQ,
-             *                        S.CHK_QTY         -- 收货方尺码实际收货数量
-             *                   FROM SF_PROC_RCSIZE S
-             *                  WHERE S.ORG_ID = P_ORGID
-             *                    AND S.PROC_NO = P_PROC_NO
-             *                    AND S.PROC_SEQ = REC_D.RCPT_SEQ
-             *                    AND S.CHK_SEQ = REC_D.RCPT_CHK_SEQ
-             *                    AND S.CHK_QTY > 0
-             *                    ORG_ID AND PROC_NO AND PROC_SEQ AND CHK_SEQ
              */
 
             // 获取签收表Size档的数据
-            List<SfProcRcsize> allPsSignS = psSignSMapper.getPsSignSList(orgId,procNo,signCursor.getPsProcSeq(),signCursor.getChkNo());
+            List<SfProcRcsize> allPsSignS = psSignSMapper.getPsSignSList(orgId,procNo,signCursor.getRcptSeq(),signCursor.getRcptChkSeq());
             if (allPsSignS.isEmpty()){
                 // 插入一条*的数据
                 PsSignS psSignS = new PsSignS();
@@ -187,7 +218,7 @@ public class AutoSignServiceImpl implements AutoSignService {
                 psSignS.setSignQty(signCursor.getChkQty());
                 psSignS.setCreUser("258159");
                 psSignS.setLastUser("257490");
-                psSignS.setCreDate(LocalDateTime.now());;
+                psSignS.setCreDate(LocalDateTime.now());
                 psSignS.setLastDate(LocalDateTime.now());
                 psSignSList.add(psSignS);
             }else {
@@ -201,18 +232,22 @@ public class AutoSignServiceImpl implements AutoSignService {
                     psSignS.setSignQty(size.getChkQty());
                     psSignS.setCreUser("258159");
                     psSignS.setLastUser("257490");
-                    psSignS.setCreDate(LocalDateTime.now());;
+                    psSignS.setCreDate(LocalDateTime.now());
                     psSignS.setLastDate(LocalDateTime.now());
                     psSignSList.add(psSignS);
                 }
             }
         }
-
+//        插入D表
         int insertDNum = psSignDMapper.insertDataToPsSignD(psSignDList);
+        //        插入rec记录
+        autoSignRecService.autoSignRec(recList);
         if(insertDNum == salesSeq){
             log.info("插入明细成功，共插入数据：" + insertDNum + "条");
         }else{
+//            失败插入失败的记录
             throw new BusinessException("签收明细插入失败");
+
         }
 
         /**
@@ -220,7 +255,7 @@ public class AutoSignServiceImpl implements AutoSignService {
          * 传入数据直接在组装ps_sign_d的数据时就组装好
          */
         int insertSNum = psSignSMapper.insertBatch(psSignSList);
-        if(insertSNum >=1){
+        if(insertSNum == psSignSList.size()){
             log.info("插入数据成功，共插入数据：" + insertSNum + "条");
         }else {
             throw new BusinessException("签收size插入失败");

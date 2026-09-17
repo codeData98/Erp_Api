@@ -31,7 +31,7 @@
         WHERE S.ORG_ID = #{orgId}
           AND S.PROC_NO = #{procNo}
           AND S.PROC_SEQ = #{procSeq}
-          AND S.CHK_SEQ = #{chkNo}
+          AND S.CHK_SEQ = #{ChkSeq}
           AND S.CHK_QTY > 0
     </select>
 
